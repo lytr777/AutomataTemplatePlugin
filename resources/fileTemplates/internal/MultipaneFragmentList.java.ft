@@ -1,0 +1,75 @@
+#if (${PACKAGE_NAME} && ${PACKAGE_NAME} != "")package ${PACKAGE_NAME};#end
+
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ProgressBar;
+
+import java.util.List;
+
+#parse("File Header.java")
+
+public class ${NAME} extends Fragment {
+
+    private ProgressBar progressBar;
+    private RecyclerView listView;
+
+    private ${LIST_AUTOMATA} ${LIST_AUTOMATA_VAR};
+
+    public ${NAME}() {
+        ${LIST_AUTOMATA_VAR} = ${LIST_AUTOMATA}.getInstance();
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        ${LIST_AUTOMATA_VAR}.setListReference(this);
+        ${LIST_AUTOMATA_VAR}.lifecycle.onCreate.trigger(${LIST_AUTOMATA_VAR}.lifecycleContext);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        View v = inflater.inflate(R.layout.${LIST_LAYOUT}, container, false);
+
+        progressBar = (ProgressBar) v.findViewById(R.id.list_progress);
+        listView = (RecyclerView) v.findViewById(R.id.list);
+        listView.setLayoutManager(new LinearLayoutManager(getActivity().getApplicationContext()));
+        return v;
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        ${LIST_AUTOMATA_VAR}.lifecycle.onCreateView.trigger(${LIST_AUTOMATA_VAR}.lifecycleContext);
+        super.onActivityCreated(savedInstanceState);
+    }
+    public void progress() {
+        progressBar.setVisibility(View.VISIBLE);
+    }
+
+    public void error() {
+        progressBar.setVisibility(View.INVISIBLE);
+    }
+
+    public void setItemList(List<Item> itemList) {
+        progressBar.setVisibility(View.INVISIBLE);
+        listView.setAdapter(new ItemRecyclerViewAdapter(itemList));
+    }
+
+    @Override
+    public void onDestroyView() {
+        ${LIST_AUTOMATA_VAR}.lifecycle.onDestroyView.trigger(${LIST_AUTOMATA_VAR}.lifecycleContext);
+        super.onDestroyView();
+    }
+
+    @Override
+    public void onDestroy() {
+        ${LIST_AUTOMATA_VAR}.lifecycle.onDestroy.trigger(${LIST_AUTOMATA_VAR}.lifecycleContext);
+        super.onDestroy();
+    }
+}

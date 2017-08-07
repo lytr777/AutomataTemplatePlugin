@@ -1,0 +1,238 @@
+#if (${PACKAGE_NAME} && ${PACKAGE_NAME} != "")package ${PACKAGE_NAME};#end
+
+import android.os.AsyncTask;
+import android.util.Log;
+import au.com.ds.ef.*;
+import au.com.ds.ef.call.EventHandler;
+import com.example.lytr777.myapplication.utils.PrimitiveFragmentLifecycle;
+
+import java.lang.ref.WeakReference;
+
+#parse("File Header.java")
+
+public class ${NAME} {
+
+    private static class LifecycleContext extends StatefulContext {
+
+        private WeakReference<${INFO_FRAGMENT}> infoFr = null;
+
+        @Override
+        public String toString() {
+            return "LifecycleContext" ;
+        }
+    }
+
+    public LifecycleContext lifecycleContext;
+    public PrimitiveFragmentLifecycle<LifecycleContext> lifecycle;
+
+    private void initLifecycle() {
+        lifecycle = new PrimitiveFragmentLifecycle<>(new SyncExecutor(), true);
+    }
+
+    public void setInfoReference(${INFO_FRAGMENT} reference) {
+        if (reference != null)
+            lifecycleContext.infoFr = new WeakReference<>(reference);
+    }
+
+    private void bindLifecycle() {
+        lifecycle.onCreate.whenTriggered(new EventHandler<LifecycleContext>() {
+            @Override
+            public void call(Event<LifecycleContext> event, State<LifecycleContext> from, State<LifecycleContext> to, LifecycleContext context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                check(context.infoFr, event.toString());
+            }
+        });
+        lifecycle.onCreateView.whenTriggered(new EventHandler<LifecycleContext>() {
+            @Override
+            public void call(Event<LifecycleContext> event, State<LifecycleContext> from, State<LifecycleContext> to, LifecycleContext context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                context.infoFr.get().fillFields(${INFO_AUTOMATA_VAR}Context.item);
+                if (${INFO_AUTOMATA_VAR}Context.getState().equals(DOWNLOAD))
+                    context.infoFr.get().progress();
+                else if (${INFO_AUTOMATA_VAR}Context.getState().equals(ERROR))
+                    context.infoFr.get().error();
+                else
+                    lifecycleContext.infoFr.get().setImage(${INFO_AUTOMATA_VAR}Context.image);
+            }
+        });
+        lifecycle.onDestroyView.whenTriggered(new EventHandler<LifecycleContext>() {
+            @Override
+            public void call(Event<LifecycleContext> event, State<LifecycleContext> from, State<LifecycleContext> to, LifecycleContext context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+            }
+        });
+        lifecycle.onDestroy.whenTriggered(new EventHandler<LifecycleContext>() {
+            @Override
+            public void call(Event<LifecycleContext> event, State<LifecycleContext> from, State<LifecycleContext> to, LifecycleContext context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                context.infoFr = null;
+            }
+        });
+    }
+
+//------------------------------------------------------------------------------------------------------------//
+
+private static class ${INFO_AUTOMATA}Context extends StatefulContext {
+
+    private AsyncTask<Void, Void, Integer> downloadEmulation;
+    private Item item;
+    private int image;
+
+    @Override
+    public String toString() {
+        return "${INFO_AUTOMATA}Context" ;
+    }
+}
+
+    //info states
+    private final State<${INFO_AUTOMATA}Context> NULL = new State<>("NULL");
+    private final State<${INFO_AUTOMATA}Context> DOWNLOAD = new State<>("DOWNLOAD");
+    private final State<${INFO_AUTOMATA}Context> ERROR = new State<>("ERROR");
+    private final State<${INFO_AUTOMATA}Context> COMPLETE = new State<>("COMPLETE");
+
+    //info events
+    public final Event<${INFO_AUTOMATA}Context> setData = new Event<>("setData");
+    public final Event<${INFO_AUTOMATA}Context> ok = new Event<>("ok");
+    public final Event<${INFO_AUTOMATA}Context> error = new Event<>("error");
+    public final Event<${INFO_AUTOMATA}Context> reload = new Event<>("reload");
+
+    private EasyFlow<${INFO_AUTOMATA}Context> flow;
+    public ${INFO_AUTOMATA}Context ${INFO_AUTOMATA_VAR}Context;
+
+    private void initFlow() {
+        if (flow != null) {
+            return;
+        }
+
+        flow = FlowBuilder
+                .from(NULL).transit(
+                        setData.to(DOWNLOAD).transit(
+                                ok.to(COMPLETE).transit(
+                                        setData.to(DOWNLOAD)
+                                ),
+                                error.to(ERROR).transit(
+                                        setData.to(DOWNLOAD),
+                                        reload.to(DOWNLOAD)
+                                )
+                        )
+                ).executor(new SyncExecutor()).trace();
+    }
+
+    public void setImage(int image) {
+        ${INFO_AUTOMATA_VAR}Context.image = image;
+    }
+
+    private void bindFlow() {
+        setData.whenTriggered(new EventHandler<${INFO_AUTOMATA}Context>() {
+            @Override
+            public void call(Event<${INFO_AUTOMATA}Context> event, State<${INFO_AUTOMATA}Context> from, State<${INFO_AUTOMATA}Context> to, ${INFO_AUTOMATA}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                download(false);
+                if (lifecycleContext.getState().equals(lifecycle.VIEW_CREATED)) {
+                    lifecycleContext.infoFr.get().fillFields(context.item);
+                    lifecycleContext.infoFr.get().progress();
+                }
+            }
+        });
+        ok.whenTriggered(new EventHandler<${INFO_AUTOMATA}Context>() {
+            @Override
+            public void call(Event<${INFO_AUTOMATA}Context> event, State<${INFO_AUTOMATA}Context> from, State<${INFO_AUTOMATA}Context> to, ${INFO_AUTOMATA}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                context.downloadEmulation = null;
+                if (lifecycleContext.getState().equals(lifecycle.VIEW_CREATED))
+                    lifecycleContext.infoFr.get().setImage(context.image);
+            }
+        });
+        error.whenTriggered(new EventHandler<${INFO_AUTOMATA}Context>() {
+            @Override
+            public void call(Event<${INFO_AUTOMATA}Context> event, State<${INFO_AUTOMATA}Context> from, State<${INFO_AUTOMATA}Context> to, ${INFO_AUTOMATA}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                context.downloadEmulation = null;
+                if (lifecycleContext.getState().equals(lifecycle.VIEW_CREATED))
+                    lifecycleContext.infoFr.get().error();
+            }
+        });
+        reload.whenTriggered(new EventHandler<${INFO_AUTOMATA}Context>() {
+            @Override
+            public void call(Event<${INFO_AUTOMATA}Context> event, State<${INFO_AUTOMATA}Context> from, State<${INFO_AUTOMATA}Context> to, ${INFO_AUTOMATA}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                download(false);
+                if (lifecycleContext.getState().equals(lifecycle.VIEW_CREATED))
+                    lifecycleContext.infoFr.get().progress();
+            }
+        });
+    }
+
+    public static ${NAME} getInstance() {
+        return ourInstance;
+    }
+
+    private ${NAME}() {
+        initLifecycle();
+        initFlow();
+        bindLifecycle();
+        bindFlow();
+
+        lifecycleContext = new LifecycleContext();
+        lifecycle.start(lifecycleContext);
+
+        ${INFO_AUTOMATA_VAR}Context = new ${INFO_AUTOMATA}Context();
+        flow.start(${INFO_AUTOMATA_VAR}Context);
+    }
+
+    private boolean checkElement(Item newItem) {
+        if (${INFO_AUTOMATA_VAR}Context.item == null || (!${INFO_AUTOMATA_VAR}Context.item.getId().equals(newItem.getId()))) {
+            ${INFO_AUTOMATA_VAR}Context.item = newItem;
+            return true;
+        } else
+            return false;
+    }
+
+    private void download(boolean cancel) {
+        if (cancel) ${INFO_AUTOMATA_VAR}Context.downloadEmulation.cancel(true);
+        ${INFO_AUTOMATA_VAR}Context.downloadEmulation = new AsyncTask<Void, Void, Integer>() {
+            @Override
+            protected Integer doInBackground(Void... params) {
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException ignored) {}
+                return 0;
+            }
+
+            @Override
+            protected void onPostExecute(Integer result) {
+                super.onPostExecute(result);
+                if (result < 0) {
+                    error.trigger(${INFO_AUTOMATA_VAR}Context);
+                    return;
+                }
+                setImage(R.mipmap.ic_launcher);
+                ok.trigger(${INFO_AUTOMATA_VAR}Context);
+            }
+        };
+        ${INFO_AUTOMATA_VAR}Context.downloadEmulation.execute();
+    }
+
+    public void setItem(Item item) {
+        if (${INFO_AUTOMATA_VAR}Context.getState().equals(DOWNLOAD)) {
+            if (checkElement(item)) {
+                download(true);
+                if (lifecycleContext.getState().equals(lifecycle.VIEW_CREATED))
+                    lifecycleContext.infoFr.get().fillFields(item);
+            }
+            return;
+        }
+        if (!checkElement(item) && ${INFO_AUTOMATA_VAR}Context.getState().equals(COMPLETE))
+            return;
+
+        setData.trigger(${INFO_AUTOMATA_VAR}Context);
+    }
+
+    private void check(Object o, String event) throws NullPointerException {
+        if (o == null)
+            throw new NullPointerException("object in event " + event + " is null");
+    }
+
+    private static final String TAG = "${NAME}" ;
+    private static final ${NAME} ourInstance = new ${NAME}();
+}

@@ -1,0 +1,58 @@
+<idea-plugin>
+    <id>com.your.company.unique.plugin.id</id>
+    <name>Automata Templates</name>
+    <version>1.0</version>
+    <vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>
+
+    <description><![CDATA[
+      Enter short description for your plugin here.<br>
+      <em>most HTML tags may be used</em>
+    ]]></description>
+
+    <change-notes><![CDATA[
+      Add change notes here.<br>
+      <em>most HTML tags may be used</em>
+    ]]>
+    </change-notes>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+    <idea-version since-build="145.0"/>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+    <depends>com.intellij.modules.lang</depends>
+    -->
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+        <defaultProjectTypeProvider type="Android"/>
+        <toolWindow id="My Sample Tool Window" anchor="bottom" factoryClass="com.au.temp.toolWindow.MyToolWindow"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <internalFileTemplate name="MultipaneActivity"/>
+        <internalFileTemplate name="MultipaneListItem"/>
+        <internalFileTemplate name="MultipaneFragmentList"/>
+        <internalFileTemplate name="MultipaneFragmentInfo"/>
+        <internalFileTemplate name="ListItemRecyclerViewAdapter"/>
+
+        <internalFileTemplate name="StaticMultipaneActivityAutomata"/>
+        <internalFileTemplate name="StaticMultipaneListAutomata"/>
+        <internalFileTemplate name="StaticMultipaneInfoAutomata"/>
+
+        <!--utils-->
+        <internalFileTemplate name="PrimitiveFragmentLifecycle"/>
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+        <group id="AutomataTemplatesGroup" class="com.intellij.openapi.actionSystem.DefaultActionGroup" text="Automata Templates" popup="true">
+            <add-to-group group-id="NewGroup" anchor="after" relative-to-action="NewFromTemplate"/>
+            <action id="MultipaneLayoutAction" class="com.au.temp.multipane.MultipaneAction" text="Multipane Layout"/>
+            <action id="MultipaneLayoutAction1" class="com.au.temp.multipane.MultipaneAction" text="Template 1"/>
+            <action id="MultipaneLayoutAction2" class="com.au.temp.multipane.MultipaneAction" text="Template 2"/>
+        </group>
+    </actions>
+
+</idea-plugin>

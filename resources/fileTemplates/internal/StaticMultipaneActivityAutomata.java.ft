@@ -1,0 +1,203 @@
+#if (${PACKAGE_NAME} && ${PACKAGE_NAME} != "")package ${PACKAGE_NAME};#end
+
+import android.util.Log;
+import java.lang.ref.WeakReference;
+
+import au.com.ds.ef.*;
+import au.com.ds.ef.call.EventHandler;
+import au.com.ds.ef.call.StateHandler;
+
+#parse("File Header.java")
+
+public class ${NAME} {
+
+    private static class ${NAME}Context extends StatefulContext {
+
+        private WeakReference<${MAIN_ACTIVITY}> ${MAIN_ACTIVITY_VAR} = null;
+
+        @Override
+        public String toString() {
+            return "${NAME}Context";
+        }
+    }
+
+    //main states
+    private final State<${NAME}Context> NULL = new State<>("NULL");
+    private final State<${NAME}Context> SINGLE_PORT = new State<>("SINGLE_PORT");
+    private final State<${NAME}Context> SINGLE_LAND = new State<>("SINGLE_LAND");
+    private final State<${NAME}Context> DOUBLE_PORT = new State<>("DOUBLE_PORT");
+    private final State<${NAME}Context> DOUBLE_LAND = new State<>("DOUBLE_LAND");
+    //android lifecycle states
+    private final State<${NAME}Context> SINGLE_CREATE = new State<>("SINGLE_CREATE");
+    private final State<${NAME}Context> SINGLE_PAUSE = new State<>("SINGLE_PAUSE");
+    private final State<${NAME}Context> SINGLE_STOP = new State<>("SINGLE_STOP");
+    private final State<${NAME}Context> SINGLE_DESTROY = new State<>("SINGLE_DESTROY");
+    private final State<${NAME}Context> DOUBLE_CREATE = new State<>("DOUBLE_CREATE");
+    private final State<${NAME}Context> DOUBLE_PAUSE = new State<>("DOUBLE_PAUSE");
+    private final State<${NAME}Context> DOUBLE_STOP = new State<>("DOUBLE_STOP");
+    private final State<${NAME}Context> DOUBLE_DESTROY = new State<>("DOUBLE_DESTROY");
+
+    //main events
+    public final Event<${NAME}Context> onCreate = new Event<>("onCreate");
+    public final Event<${NAME}Context> onPause = new Event<>("onPause");
+    public final Event<${NAME}Context> onResumeLand = new Event<>("onResumeLand");
+    public final Event<${NAME}Context> onResumePort = new Event<>("onResumePort");
+    public final Event<${NAME}Context> onStop = new Event<>("onStop");
+    public final Event<${NAME}Context> onDestroy = new Event<>("onDestroy");
+    public final Event<${NAME}Context> elementClick = new Event<>("elementClick");
+    public final Event<${NAME}Context> back = new Event<>("back");
+
+    private EasyFlow<${NAME}Context> flow;
+    public ${NAME}Context flowContext;
+
+    private void initFlow() {
+        if (flow != null) {
+            return;
+        }
+
+        flow = FlowBuilder
+                .from(NULL).transit(
+                        onCreate.to(SINGLE_CREATE).transit(
+                                onResumePort.to(SINGLE_PORT).transit(
+                                        back.to(NULL),
+                                        onPause.to(SINGLE_PAUSE).transit(
+                                                onResumePort.to(SINGLE_PORT),
+                                                onStop.to(SINGLE_STOP).transit(
+                                                        onResumePort.to(SINGLE_PORT),
+                                                        onDestroy.to(SINGLE_DESTROY).transit(
+                                                                onCreate.to(SINGLE_CREATE)
+                                                        ),
+                                                        onResumeLand.to(SINGLE_LAND)
+                                                ),
+                                                onResumeLand.to(SINGLE_LAND)
+                                        ),
+                                        elementClick.to(DOUBLE_PORT).transit(
+                                                back.to(SINGLE_PORT),
+                                                onPause.to(DOUBLE_PAUSE).transit(
+                                                        onResumePort.to(DOUBLE_PORT),
+                                                        onStop.to(DOUBLE_STOP).transit(
+                                                                onResumePort.to(DOUBLE_PORT),
+                                                                onDestroy.to(DOUBLE_DESTROY).transit(
+                                                                        onCreate.to(DOUBLE_CREATE).transit(
+                                                                                onResumePort.to(DOUBLE_PORT),
+                                                                                onResumeLand.to(DOUBLE_LAND)
+                                                                        )
+                                                                ),
+                                                                onResumeLand.to(DOUBLE_LAND)
+                                                        ),
+                                                        onResumeLand.to(DOUBLE_LAND)
+                                                )
+                                        )
+                                ),
+                                onResumeLand.to(SINGLE_LAND).transit(
+                                        back.to(NULL),
+                                        onPause.to(SINGLE_PAUSE),
+                                        elementClick.to(DOUBLE_LAND).transit(
+                                                back.to(NULL),
+                                                //elementClick.to(DOUBLE_LAND),
+                                                onPause.to(DOUBLE_PAUSE)
+                                        )
+                                )
+                        )
+                ).executor(new SyncExecutor()).trace();
+    }
+
+    public void setActivity(${MAIN_ACTIVITY} activity) {
+        if (activity != null)
+            flowContext.${MAIN_ACTIVITY_VAR} = new WeakReference<>(activity);
+    }
+
+    private void bindFlow() {
+        onCreate.whenTriggered(new EventHandler<${NAME}Context>() {
+            @Override
+            public void call(Event<${NAME}Context> event, State<${NAME}Context> from, State<${NAME}Context> to, ${NAME}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                check(context.${MAIN_ACTIVITY_VAR}, event.toString());
+            }
+        });
+
+        onResumeLand.whenTriggered(new EventHandler<${NAME}Context>() {
+            @Override
+            public void call(Event<${NAME}Context> event, State<${NAME}Context> from, State<${NAME}Context> to, ${NAME}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                if (to.equals(SINGLE_LAND))
+                    context.${MAIN_ACTIVITY_VAR}.get().list.trigger(context.${MAIN_ACTIVITY_VAR}.get().flowContext);
+                else
+                    context.${MAIN_ACTIVITY_VAR}.get().info.trigger(context.${MAIN_ACTIVITY_VAR}.get().flowContext);
+            }
+        });
+
+        onResumePort.whenTriggered(new EventHandler<${NAME}Context>() {
+            @Override
+            public void call(Event<${NAME}Context> event, State<${NAME}Context> from, State<${NAME}Context> to, ${NAME}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                if (to.equals(SINGLE_PORT))
+                    context.${MAIN_ACTIVITY_VAR}.get().list.trigger(context.${MAIN_ACTIVITY_VAR}.get().flowContext);
+                else
+                    context.${MAIN_ACTIVITY_VAR}.get().info.trigger(context.${MAIN_ACTIVITY_VAR}.get().flowContext);
+            }
+        });
+
+        onPause.whenTriggered(new EventHandler<${NAME}Context>() {
+            @Override
+            public void call(Event<${NAME}Context> event, State<${NAME}Context> from, State<${NAME}Context> to, ${NAME}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+            }
+        });
+
+        onStop.whenTriggered(new EventHandler<${NAME}Context>() {
+            @Override
+            public void call(Event<${NAME}Context> event, State<${NAME}Context> from, State<${NAME}Context> to, ${NAME}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+            }
+        });
+
+        onDestroy.whenTriggered(new EventHandler<${NAME}Context>() {
+            @Override
+            public void call(Event<${NAME}Context> event, State<${NAME}Context> from, State<${NAME}Context> to, ${NAME}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                context.${MAIN_ACTIVITY_VAR} = null;
+            }
+        });
+        elementClick.whenTriggered(new EventHandler<${NAME}Context>() {
+            @Override
+            public void call(Event<${NAME}Context> event, State<${NAME}Context> from, State<${NAME}Context> to, ${NAME}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                context.${MAIN_ACTIVITY_VAR}.get().placeInfo.trigger(context.${MAIN_ACTIVITY_VAR}.get().flowContext);
+            }
+        });
+        back.whenTriggered(new EventHandler<${NAME}Context>() {
+            @Override
+            public void call(Event<${NAME}Context> event, State<${NAME}Context> from, State<${NAME}Context> to, ${NAME}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                context.${MAIN_ACTIVITY_VAR}.get().placeList.trigger(context.${MAIN_ACTIVITY_VAR}.get().flowContext);
+            }
+        });
+    }
+
+    public static ${NAME} getInstance() {
+        return ourInstance;
+    }
+
+    private ${NAME}() {
+        initFlow();
+        bindFlow();
+
+        flowContext = new ${NAME}Context();
+
+        flow.start(flowContext);
+    }
+
+    public void elementClick() {
+        if (!flowContext.getState().equals(DOUBLE_LAND))
+            elementClick.trigger(flowContext);
+    }
+
+    private void check(Object o, String event) throws NullPointerException {
+        if (o == null)
+            throw new NullPointerException("object in event " + event + " is null");
+    }
+
+    private static final String TAG = "${NAME}";
+    private static ${NAME} ourInstance = new ${NAME}();
+}

@@ -1,0 +1,209 @@
+#if (${PACKAGE_NAME} && ${PACKAGE_NAME} != "")package ${PACKAGE_NAME};#end
+
+import android.content.res.Configuration;
+import android.support.annotation.IdRes;
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.util.Log;
+
+import au.com.ds.ef.*;
+import au.com.ds.ef.call.EventHandler;
+
+#parse("File Header.java")
+
+public class ${NAME} extends AppCompatActivity {
+
+    private static class ${NAME}Context extends StatefulContext {
+
+        @Override
+        public String toString() {
+            return "${NAME}Context";
+        }
+    }
+
+    //main port states
+    private final State<${NAME}Context> APP_PORT = new State<>("APP_PORT");
+    private final State<${NAME}Context> APP_PORT_LIST = new State<>("APP_PORT_LIST");
+    private final State<${NAME}Context> APP_PORT_INFO = new State<>("APP_PORT_INFO");
+    //main land states
+    private final State<${NAME}Context> APP_LAND = new State<>("APP_LAND");
+    private final State<${NAME}Context> APP_LAND_LIST = new State<>("APP_LAND_LIST");
+    private final State<${NAME}Context> APP_LAND_ALL = new State<>("APP_LAND_ALL");
+
+    //main events
+    public final Event<${NAME}Context> list = new Event<>("list");
+    public final Event<${NAME}Context> info = new Event<>("info");
+    public final Event<${NAME}Context> placeList = new Event<>("placeList");
+    public final Event<${NAME}Context> placeInfo = new Event<>("placeInfo");
+    public final Event<${NAME}Context> pullOut = new Event<>("pullOut");
+
+    private EasyFlow<${NAME}Context> flow;
+    public ${NAME}Context flowContext;
+
+    private void bindFlow() {
+        list.whenTriggered(new EventHandler<${NAME}Context>() {
+            @Override
+            public void call(Event<${NAME}Context> event, State<${NAME}Context> from, State<${NAME}Context> to, ${NAME}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                @IdRes int listContainerId;
+                if (from.equals(APP_PORT)) listContainerId = R.id.main_frame;
+                else listContainerId = R.id.main_frame_list;
+                getSupportFragmentManager().beginTransaction()
+                        .add(listContainerId, ${LIST_FRAGMENT_VAR})
+                        .commit();
+            }
+        });
+        info.whenTriggered(new EventHandler<${NAME}Context>() {
+            @Override
+            public void call(Event<${NAME}Context> event, State<${NAME}Context> from, State<${NAME}Context> to, ${NAME}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                if (from.equals(APP_PORT))
+                    getSupportFragmentManager().beginTransaction()
+                            .add(R.id.main_frame, ${INFO_FRAGMENT_VAR})
+                            .commit();
+                else
+                    getSupportFragmentManager().beginTransaction()
+                            .add(R.id.main_frame_list, ${LIST_FRAGMENT_VAR})
+                            .add(R.id.main_frame_info, ${INFO_FRAGMENT_VAR})
+                            .commit();
+            }
+        });
+        placeInfo.whenTriggered(new EventHandler<${NAME}Context>() {
+            @Override
+            public void call(Event<${NAME}Context> event, State<${NAME}Context> from, State<${NAME}Context> to, ${NAME}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                if (from.equals(APP_PORT_LIST))
+                    getSupportFragmentManager().beginTransaction()
+                            .remove(${LIST_FRAGMENT_VAR})
+                            .add(R.id.main_frame, ${INFO_FRAGMENT_VAR})
+                            .commit();
+                else
+                    getSupportFragmentManager().beginTransaction()
+                            .add(R.id.main_frame_info, ${INFO_FRAGMENT_VAR})
+                            .commit();
+            }
+        });
+        placeList.whenTriggered(new EventHandler<${NAME}Context>() {
+            @Override
+            public void call(Event<${NAME}Context> event, State<${NAME}Context> from, State<${NAME}Context> to, ${NAME}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                getSupportFragmentManager().beginTransaction()
+                        .remove(${INFO_FRAGMENT_VAR})
+                        .add(R.id.main_frame, ${LIST_FRAGMENT_VAR})
+                        .commit();
+            }
+        });
+        pullOut.whenTriggered(new EventHandler<${NAME}Context>() {
+            @Override
+            public void call(Event<${NAME}Context> event, State<${NAME}Context> from, State<${NAME}Context> to, ${NAME}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                if (from.equals(APP_PORT_LIST) || from.equals(APP_LAND_LIST))
+                    getSupportFragmentManager().beginTransaction()
+                            .remove(${LIST_FRAGMENT_VAR})
+                            .commit();
+                else if (from.equals(APP_PORT_INFO))
+                    getSupportFragmentManager().beginTransaction()
+                            .remove(${INFO_FRAGMENT_VAR})
+                            .commit();
+                else
+                    getSupportFragmentManager().beginTransaction()
+                            .remove(${LIST_FRAGMENT_VAR})
+                            .remove(${INFO_FRAGMENT_VAR})
+                            .commit();
+            }
+        });
+    }
+
+    private ${LIST_FRAGMENT} ${LIST_FRAGMENT_VAR};
+    private ${INFO_FRAGMENT} ${INFO_FRAGMENT_VAR};
+
+    private ${MAIN_AUTOMATA} automata;
+    private int orientation;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.${MAIN_LAYOUT});
+        orientation = getResources().getConfiguration().orientation;
+
+        ${LIST_FRAGMENT_VAR} = new ${LIST_FRAGMENT}();
+        ${INFO_FRAGMENT_VAR} = new ${INFO_FRAGMENT}();
+
+        if (orientation == Configuration.ORIENTATION_PORTRAIT)
+            flow = FlowBuilder
+                    .from(APP_PORT).transit(
+                            list.to(APP_PORT_LIST).transit(
+                                    placeInfo.to(APP_PORT_INFO),
+                                    pullOut.to(APP_PORT)
+                            ),
+                            info.to(APP_PORT_INFO).transit(
+                                    placeList.to(APP_PORT_LIST),
+                                    pullOut.to(APP_PORT)
+                            )
+                    ).executor(new SyncExecutor()).trace();
+        else
+            flow = FlowBuilder
+                    .from(APP_LAND).transit(
+                            list.to(APP_LAND_LIST).transit(
+                                    placeInfo.to(APP_LAND_ALL),
+                                    pullOut.to(APP_LAND)
+                            ),
+                            info.to(APP_LAND_ALL).transit(
+                                    pullOut.to(APP_LAND)
+                            )
+                    ).executor(new SyncExecutor()).trace();
+
+        bindFlow();
+
+        flowContext = new ${NAME}Context();
+        flow.start(flowContext);
+
+        automata = ${MAIN_AUTOMATA}.getInstance();
+
+        automata.setActivity(this);
+        automata.onCreate.trigger(automata.flowContext);
+        }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (orientation == Configuration.ORIENTATION_LANDSCAPE)
+        automata.onResumeLand.trigger(automata.flowContext);
+        else
+        automata.onResumePort.trigger(automata.flowContext);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (flowContext.getState().equals(APP_PORT_INFO))
+        automata.back.trigger(automata.flowContext);
+        else
+        super.onBackPressed();
+    }
+
+    @Override
+    protected void onPause() {
+        automata.onPause.trigger(automata.flowContext);
+        super.onPause();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle bundle) {
+        pullOut.trigger(flowContext);
+        super.onSaveInstanceState(bundle);
+    }
+
+    @Override
+    protected void onStop() {
+        automata.onStop.trigger(automata.flowContext);
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        automata.onDestroy.trigger(automata.flowContext);
+        super.onDestroy();
+    }
+
+    private static final String TAG = "${NAME}Automata";
+}

@@ -1,0 +1,60 @@
+#if (${PACKAGE_NAME} && ${PACKAGE_NAME} != "")package ${PACKAGE_NAME};#end
+
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+
+import java.util.List;
+
+#parse("File Header.java")
+
+public class ${NAME} extends RecyclerView.Adapter<${NAME}.ViewHolder> {
+
+    private final List<${LIST_ITEM}> ${LIST_ITEM_VAR}List;
+
+    public ${NAME}(List<${LIST_ITEM}> ${LIST_ITEM_VAR}List) {
+        this.${LIST_ITEM_VAR}List = ${LIST_ITEM_VAR}List;
+    }
+
+    @Override
+    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.${ITEM_LAYOUT}, parent, false);
+        return new ViewHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(final ViewHolder holder, int position) {
+        holder.${LIST_ITEM_VAR} = ${LIST_ITEM_VAR}List.get(position);
+        holder.id.setText(${LIST_ITEM_VAR}List.get(position).getId());
+        holder.name.setText(${LIST_ITEM_VAR}List.get(position).getName());
+
+        holder.view.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ${LIST_AUTOMATA}.getInstance().elementClick(holder.${LIST_ITEM_VAR});
+            }
+        });
+    }
+
+    @Override
+    public int getItemCount() {
+        return ${LIST_ITEM_VAR}List.size();
+    }
+
+    class ViewHolder extends RecyclerView.ViewHolder {
+        final View view;
+        final TextView id;
+        final TextView name;
+        ${LIST_ITEM} ${LIST_ITEM_VAR};
+
+        ViewHolder(View view) {
+            super(view);
+            this.view = view;
+            id = (TextView) view.findViewById(R.id.id);
+            name = (TextView) view.findViewById(R.id.name);
+        }
+    }
+}

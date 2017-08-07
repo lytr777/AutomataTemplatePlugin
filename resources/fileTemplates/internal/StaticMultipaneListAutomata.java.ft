@@ -1,0 +1,235 @@
+#if (${PACKAGE_NAME} && ${PACKAGE_NAME} != "")package ${PACKAGE_NAME};#end
+
+import android.os.AsyncTask;
+import android.util.Log;
+
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
+
+import au.com.ds.ef.*;
+import au.com.ds.ef.call.EventHandler;
+import au.com.ds.ef.call.StateHandler;
+
+import com.example.lytr777.myapplication.utils.PrimitiveFragmentLifecycle;
+
+#parse("File Header.java")
+
+public class ${NAME} {
+
+    private static class LifecycleContext extends StatefulContext {
+
+        private WeakReference<${LIST_FRAGMENT}> reference;
+
+        @Override
+        public String toString() {
+            return "LifecycleContext";
+        }
+    }
+
+    public LifecycleContext lifecycleContext;
+    public PrimitiveFragmentLifecycle<LifecycleContext> lifecycle;
+
+    private void initLifecycle() {
+        lifecycle = new PrimitiveFragmentLifecycle<>(new SyncExecutor(), true);
+    }
+
+    public void setListReference(ListFragment reference) {
+        if (reference != null)
+            lifecycleContext.reference = new WeakReference<>(reference);
+    }
+
+    private void bindLifecycle() {
+        lifecycle.L_NULL.whenLeave(new StateHandler<LifecycleContext>() {
+            @Override
+            public void call(State<LifecycleContext> state, LifecycleContext context) throws Exception {
+                start.trigger(${LIST_AUTOMATA_VAR}Context);
+            }
+        });
+
+        lifecycle.onCreate.whenTriggered(new EventHandler<LifecycleContext>() {
+            @Override
+            public void call(Event<LifecycleContext> event, State<LifecycleContext> from, State<LifecycleContext> to, LifecycleContext context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                check(context.reference, event.toString());
+            }
+        });
+        lifecycle.onCreateView.whenTriggered(new EventHandler<LifecycleContext>() {
+            @Override
+            public void call(Event<LifecycleContext> event, State<LifecycleContext> from, State<LifecycleContext> to, LifecycleContext context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                Log.d(TAG, ${LIST_AUTOMATA_VAR}Context.getState().toString());
+                if (${LIST_AUTOMATA_VAR}Context.getState().equals(DOWNLOAD))
+                    context.reference.get().progress();
+                else if (${LIST_AUTOMATA_VAR}Context.getState().equals(ERROR))
+                    context.reference.get().error();
+                else
+                    context.reference.get().setItemList(${LIST_AUTOMATA_VAR}Context.itemList);
+            }
+        });
+        lifecycle.onDestroyView.whenTriggered(new EventHandler<LifecycleContext>() {
+            @Override
+            public void call(Event<LifecycleContext> event, State<LifecycleContext> from, State<LifecycleContext> to, LifecycleContext context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+            }
+        });
+        lifecycle.onDestroy.whenTriggered(new EventHandler<LifecycleContext>() {
+            @Override
+            public void call(Event<LifecycleContext> event, State<LifecycleContext> from, State<LifecycleContext> to, LifecycleContext context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                context.reference = null;
+            }
+        });
+    }
+
+//---------------------------------------------------------------------------------------------------------------//
+
+private static class ${LIST_AUTOMATA}Context extends StatefulContext {
+
+    private AsyncTask<Void, Void, Integer> downloadEmulation;
+    private List<${LIST_ITEM}> ${LIST_ITEM_VAR}List;
+
+    @Override
+    public String toString() {
+        return "${LIST_AUTOMATA}Context";
+    }
+}
+
+    //list states
+    private final State<${LIST_AUTOMATA}Context> NULL = new State<>("NULL");
+    private final State<${LIST_AUTOMATA}Context> DOWNLOAD = new State<>("DOWNLOAD");
+    private final State<${LIST_AUTOMATA}Context> ERROR = new State<>("ERROR");
+    private final State<${LIST_AUTOMATA}Context> COMPLETE = new State<>("COMPLETE");
+
+    //list events
+    public final Event<${LIST_AUTOMATA}Context> start = new Event<>("start");
+    public final Event<${LIST_AUTOMATA}Context> ok = new Event<>("ok");
+    public final Event<${LIST_AUTOMATA}Context> error = new Event<>("error");
+    public final Event<${LIST_AUTOMATA}Context> reload = new Event<>("reload");
+    public final Event<${LIST_AUTOMATA}Context> test = new Event<>("test"); ///????
+
+
+    private EasyFlow<${LIST_AUTOMATA}Context> flow;
+    public ${LIST_AUTOMATA}Context ${LIST_AUTOMATA_VAR}Context;
+
+    private void initFlow() {
+        if (flow != null) {
+            return;
+        }
+
+        flow = FlowBuilder
+                .from(NULL).transit(
+                        start.to(DOWNLOAD).transit(
+                                ok.to(COMPLETE).transit(
+                                        test.to(NULL)
+                                ),
+                                error.to(ERROR).transit(
+                                        reload.to(DOWNLOAD)
+                                )
+                        )
+                ).executor(new SyncExecutor());
+    }
+
+    private void setItemList(List<${LIST_ITEM}> ${LIST_ITEM_VAR}List) {
+        ${LIST_AUTOMATA_VAR}Context.${LIST_ITEM_VAR}List = ${LIST_ITEM_VAR}List;
+    }
+
+    private void bindFlow() {
+        start.whenTriggered(new EventHandler<${LIST_AUTOMATA}Context>() {
+            @Override
+            public void call(Event<${LIST_AUTOMATA}Context> event, State<${LIST_AUTOMATA}Context> from, State<${LIST_AUTOMATA}Context> to, ${LIST_AUTOMATA}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                download();
+            }
+        });
+        ok.whenTriggered(new EventHandler<${LIST_AUTOMATA}Context>() {
+            @Override
+            public void call(Event<${LIST_AUTOMATA}Context> event, State<${LIST_AUTOMATA}Context> from, State<${LIST_AUTOMATA}Context> to, ${LIST_AUTOMATA}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                context.downloadEmulation = null;
+                if (lifecycleContext.getState().equals(lifecycle.VIEW_CREATED))
+                    lifecycleContext.reference.get().setItemList(context.${LIST_ITEM_VAR}List);
+            }
+        });
+        error.whenTriggered(new EventHandler<${LIST_AUTOMATA}Context>() {
+            @Override
+            public void call(Event<${LIST_AUTOMATA}Context> event, State<${LIST_AUTOMATA}Context> from, State<${LIST_AUTOMATA}Context> to, ${LIST_AUTOMATA}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                context.downloadEmulation = null;
+                if (lifecycleContext.getState().equals(lifecycle.VIEW_CREATED))
+                    lifecycleContext.reference.get().error();
+            }
+        });
+        reload.whenTriggered(new EventHandler<${LIST_AUTOMATA}Context>() {
+            @Override
+            public void call(Event<${LIST_AUTOMATA}Context> event, State<${LIST_AUTOMATA}Context> from, State<${LIST_AUTOMATA}Context> to, ${LIST_AUTOMATA}Context context) throws Exception {
+                Log.d(TAG, "state " + from + " ---(" + event + ")---> " + to);
+                download();
+                if (lifecycleContext.getState().equals(lifecycle.VIEW_CREATED))
+                    lifecycleContext.reference.get().progress();
+            }
+        });
+    }
+
+    public static ${NAME} getInstance() {
+        return ourInstance;
+    }
+
+    private ${NAME}() {
+        initLifecycle();
+        initFlow();
+        bindLifecycle();
+        bindFlow();
+
+        lifecycleContext = new LifecycleContext();
+        lifecycle.start(lifecycleContext);
+
+        ${LIST_AUTOMATA_VAR}Context = new ${LIST_AUTOMATA}Context();
+        flow.start(${LIST_AUTOMATA_VAR}Context);
+    }
+
+    private void download() {
+        ${LIST_AUTOMATA_VAR}Context.downloadEmulation = new AsyncTask<Void, Void, Integer>() {
+            List<${LIST_ITEM}> list;
+
+            @Override
+            protected Integer doInBackground(Void... params) {
+                list = new ArrayList<>();
+                try {
+                    Thread.sleep(500);
+                    String info = "Test info string";
+                    for (int i = 1; i <= 20; i++)
+                        list.add(new Item("0" + i, "Item number " + i, "Info " + i + ". " + info));
+                } catch (InterruptedException e) {
+                    return -1;
+                }
+                return 0;
+            }
+
+            @Override
+            protected void onPostExecute(Integer result) {
+                super.onPostExecute(result);
+                if (result < 0) {
+                    error.trigger(${LIST_AUTOMATA_VAR}Context);
+                    return;
+                }
+                setItemList(list);
+                ok.trigger(${LIST_AUTOMATA_VAR}Context);
+            }
+        };
+        ${LIST_AUTOMATA_VAR}Context.downloadEmulation.execute();
+    }
+
+    public void elementClick(${LIST_ITEM} ${LIST_ITEM_VAR}) {
+        ${INFO_AUTOMATA}.getInstance().setItem(${LIST_ITEM_VAR});
+        ${MAIN_AUTOMATA}.getInstance().elementClick();
+    }
+
+    private void check(Object o, String event) throws NullPointerException {
+        if (o == null)
+            throw new NullPointerException("object in event " + event + " is null");
+    }
+
+    private static final String TAG = "${NAME}";
+    private static final ${NAME} ourInstance = new ${NAME}();
+}

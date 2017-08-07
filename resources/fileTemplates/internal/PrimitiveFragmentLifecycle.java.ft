@@ -1,0 +1,57 @@
+#if (${PACKAGE_NAME} && ${PACKAGE_NAME} != "")package ${PACKAGE_NAME};#end
+
+import android.util.Log;
+import au.com.ds.ef.*;
+import au.com.ds.ef.call.EventHandler;
+
+import java.util.concurrent.Executor;
+
+#parse("File Header.java")
+
+public class ${NAME}<C extends StatefulContext> {
+
+    private EasyFlow<C> flow;
+
+    public final State<C> L_NULL, DESTROYED, CREATED, VIEW_CREATED;
+    public final Event<C> onCreate, onCreateView, onDestroy, onDestroyView;
+
+    public ${NAME}(Executor executor, boolean trace) {
+        L_NULL = new State<>("L_NULL");
+        DESTROYED = new State<>("DESTROYED");
+        CREATED = new State<>("CREATED");
+        VIEW_CREATED = new State<>("VIEW_CREATED");
+
+        onCreate = new Event<>("onCreate");
+        onCreateView = new Event<>("onCreateView");
+        onDestroy = new Event<>("onDestroy");
+        onDestroyView = new Event<>("onDestroyView");
+
+        flow = FlowBuilder
+                .from(L_NULL).transit(
+                        onCreate.to(CREATED).transit(
+                                onDestroy.to(DESTROYED).transit(
+                                        onCreate.to(CREATED)
+                                ),
+                                onCreateView.to(VIEW_CREATED).transit(
+                                        onDestroyView.to(CREATED)
+                                )
+                        )
+                ).executor(executor);
+        if (trace)
+            flow.trace();
+        this.flow.whenEventTriggered(new EventHandler<C>() {
+            @Override
+            public void call(Event<C> event, State<C> from, State<C> to, C context) throws Exception {
+                Log.d(context.toString(), "state " + from + " ---(" + event + ")---> " + to);
+            }
+        });
+    }
+
+    public EasyFlow<C> getFlow() {
+        return flow;
+    }
+
+    public void start(C context) {
+        flow.start(context);
+    }
+}
